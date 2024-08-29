@@ -1,0 +1,53 @@
+function Fun = eqfun(x)
+%% known variables
+
+global n ER R P xF TV0 Tsw dTi dTc dTfric x0
+if numel(dTi) == 1
+    dTi = dTi * ones(n, 1);
+end
+HV0 = FuncHsatv(TV0);
+Hsw = FuncHsw(Tsw, xF);
+%% main equations
+
+x = x .* x0;
+Fun = [x(1) + x(2) - x(3);                              % mass TVC
+       x(2) - ER*x(1);                                  % entrainment ratio
+       R * x(4) - (x(4) - x(8*(n-1)+14));               % total recovery ratio
+       P - x(8*(n-1)+9) - x(8*(n-1)+12);                % mass mixing product
+       x(3) - x(12);                                    % mass 1st effect (shell side)
+       x(4) - x(14) - x(9) - x(2);                      % mass 1st effect (tube side)
+       x(4)*xF - x(14)*x(16);                           % salinity
+       x(3)*HV0 + x(4)*x(6) - (x(9)+x(2))*x(11) ...
+       - x(12)*x(13) - x(14)*x(17);                     % energy 1st effect
+       TV0 - x(15) - dTi(1) - dTfric;                   % LMTD 1st effect
+       x(15) - x(10) - BPE(x(15), x(16));
+       x(8*(n-1)+9)*x(8*(n-1)+11) ...
+       + x(8)*Hsw - x(8*(n-1)+9)*x(7) - x(8)*x(6);      % energy condenser 
+       dTc - (x(5) - Tsw)/log((x(8*(n-1)+10) - Tsw) ...
+       /(x(8*(n-1)+10) - x(5)));                        % LMTD condenser
+       x(6) - FuncHsw(x(5),xF);                         % enthalpy correlation HF
+       x(7) - FuncHsw(x(8*(n-1)+10),0);                 % enthalpy correlation HP2
+       x(11) - FuncHsatv(x(10));                        % enthalpy correlation HV1
+       x(13) - FuncHsw(TV0,0);                          % enthalpy correlation HD1
+       x(17) - FuncHsw(x(15),x(16))];                   % enthalpy correlation HW1
+   
+  if n > 1
+      
+      for i = 2:n
+          
+          iFun = [x(9*(i-2)+9) + x(9*(i-2)+12) - x(9*(i-1)+12);                 % mass ist effect (shell side)
+                  x(9*(i-2)+14) - x(9*(i-1)+14) - x(9*(i-1)+9);                 % mass ist effect (tube side)
+                  x(9*(i-2)+14)*x(9*(i-2)+16) - x(9*(i-1)+14)*x(9*(i-1)+16);    % salinity
+                  x(9*(i-2)+9)*x(9*(i-2)+11) + x(9*(i-2)+12)*x(9*(i-2)+13) ...
+                  + x(9*(i-2)+14)*x(9*(i-2)+17) - x(9*(i-1)+9)*x(9*(i-1)+11) ...
+                  - x(9*(i-1)+12)*x(9*(i-1)+13) - x(9*(i-1)+14)*x(9*(i-1)+17);  % energy ist effect
+                  x(9*(i-2)+10) - x(9*(i-1)+15) - dTi(i) - dTfric;            % LMTD ist effect
+                  x(9*(i-1)+15) - x(9*(i-1)+10) - BPE(x(9*(i-1)+15), x(9*(i-1)+16));
+                  x(9*(i-1)+11) - FuncHsatv(9*(i-1)+10);                        % enthalpy correlation HVi
+                  x(9*(i-1)+13) - FuncHsw(x(9*(i-2)+10),0);                     % enthalpy correlation HDi
+                  x(9*(i-1)+17) - FuncHsw(x(9*(i-1)+15),x(9*(i-1)+16))];        % enthalpy correlation HWi
+              Fun = [Fun; iFun];
+      end
+      
+  end
+end
